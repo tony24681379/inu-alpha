@@ -32,15 +32,17 @@ podTemplate(
 
                 def cluster_imgName = "${env.PRIVATE_REGISTRY}/inu/cluster-scala"
                 def frontend_imgName = "${env.PRIVATE_REGISTRY}/inu/frontend-scala"
-                def commit_log = sh(script: 'git log --format=%B -n 1', returnStdout: true).trim()
+                def HEAD = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                def imgTag = "${HEAD}-${env.BUILD_NUMBER}"
+                def cluster_image
+                def frontend_image
+
                 stage('build image') {
                     dir('cluster/target/docker') {
-                        def imgTag = sh(returnStdout: true, script: 'cat tag').trim()
-                        def cluster_image = build_image(cluster_imgName, imgTag)
+                        cluster_image = build_image(cluster_imgName, imgTag)
                     }
                     dir('frontend/target/docker') {
-                        def imgTag = sh(returnStdout: true, script: 'cat tag').trim()
-                        def frontend_image = build_image(frontend_imgName, imgTag)
+                        frontend_image = build_image(frontend_imgName, imgTag)
                     }
                 }
 
@@ -69,7 +71,7 @@ podTemplate(
                 //         }
                 //     }
                 // }
-                
+
                 // stage('package chart') {
                 //     container('helm') {
                 //         sh 'helm init --client-only'
@@ -108,7 +110,7 @@ def build_image(imgName, imgTag) {
 
 
 def push_image(image) {
-    withDockerRegistry(url: env.PRIVATE_REGISTRY_URL, credentialsId: 'docker-login') {
+    docker.withRegistry(env.PRIVATE_REGISTRY_URL, 'docker-login') {
         image.push()
         if( env.BRANCH_NAME == 'master' ){
             image.push('latest')

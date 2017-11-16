@@ -61,21 +61,3 @@ lazy val cluster = create("cluster").
     buildInfoPackage := s"com.inu.cluster.storedq",
     mainClass in Compile := Some("com.inu.cluster.Main")
   )
-
-lazy val frontend = create("frontend").
-  enablePlugins(GitVersioning, BuildInfoPlugin).
-  dependsOn(protocol).
-  settings(
-  libraryDependencies ++= Seq(
-    scalaLogging,
-    akkaCluster, akkaClusterTools,akkaClusterMetrics,
-    elasticsearch,
-    json4sExt,
-    spray, sprayRouting,
-    scalatest,
-    scalazCore,
-    kryo
-  ),
-    mainClass in Compile := Some("com.inu.frontend.Main"),
-    buildInfoPackage := s"com.inu.frontend.storedq"
-  )

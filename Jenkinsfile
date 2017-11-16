@@ -24,31 +24,22 @@ podTemplate(
                     stage('build') {
                         sh 'sbt cluster/compile'
                         sh 'sbt cluster/cpJarsForDocker'
-
-                        sh 'sbt frontend/compile'
-                        sh 'sbt frontend/cpJarsForDocker'
                     }
                 }
 
                 def cluster_imgName = "${env.PRIVATE_REGISTRY}/inu/cluster-scala"
-                def frontend_imgName = "${env.PRIVATE_REGISTRY}/inu/frontend-scala"
                 def HEAD = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
                 def imgTag = "${HEAD}-${env.BUILD_NUMBER}"
                 def cluster_image
-                def frontend_image
 
                 stage('build image') {
                     dir('cluster/target/docker') {
                         cluster_image = build_image(cluster_imgName, imgTag)
                     }
-                    dir('frontend/target/docker') {
-                        frontend_image = build_image(frontend_imgName, imgTag)
-                    }
                 }
 
                 stage('push image') {
                     push_image(cluster_image)
-                    push_image(frontend_image)
                 }
                 // stage('test chart'){
                 //     container('helm') {
@@ -107,7 +98,6 @@ def build_image(imgName, imgTag) {
     def mainClass = sh(returnStdout: true, script: 'cat mainClass').trim()
     return docker.build("${imgName}:${imgTag}", "--pull --build-arg JAVA_MAIN_CLASS=${mainClass} .")
 }
-
 
 def push_image(image) {
     docker.withRegistry(env.PRIVATE_REGISTRY_URL, 'docker-login') {

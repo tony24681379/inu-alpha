@@ -2,8 +2,6 @@ package com.inu.cluster.storedquery
 
 import akka.NotUsed
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
-import akka.http.scaladsl.Http.HostConnectionPool
-import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
 import akka.pattern.{Backoff, BackoffSupervisor}
 import akka.persistence.cassandra.query.scaladsl.CassandraReadJournal
 import akka.persistence.query.{EventEnvelope, PersistenceQuery}
@@ -13,10 +11,10 @@ import com.inu.cluster.ElasticsearchExtension
 import com.inu.cluster.storedquery.elasticsearch.PercolatorWriter
 import com.inu.protocol.storedquery.messages._
 
-import scala.concurrent.{Await, Future}
-import scala.language.implicitConversions
-import scala.util.{Failure, Success, Try}
+import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.language.implicitConversions
+import scala.util.{Failure, Success}
 
 object StoredQueryRepoView {
 
@@ -43,14 +41,14 @@ class StoredQueryRepoView extends Actor with PercolatorWriter with ActorLogging 
 
   val source = readJournal.eventsByPersistenceId("StoredQueryRepoAggRoot", 0, Long.MaxValue)
 
-  val illegalIdRegx = """[^\w]+""".r
+  val illegalIdRegex = """[^\w]+""".r
   val titleFilter = s"""${sys.env("STOREDQUERY_TITLE_REGEX")}""".r.pattern
 
   val states = Flow[EventEnvelope].scan(StoredQueries()){
-    case (acc, evl @ EventEnvelope(_,_,_, evt: ItemCreated)) if illegalIdRegx.findFirstIn(evt.id).nonEmpty =>
+    case (acc, evl @ EventEnvelope(_,_,_, evt: ItemCreated)) if illegalIdRegex.findFirstIn(evt.id).nonEmpty =>
       log.warning("illegal id found: {}", evl)
       acc
-    case (acc, evl @ EventEnvelope(_,_,_, evt: ItemUpdated)) if illegalIdRegx.findFirstIn(evt.id).nonEmpty =>
+    case (acc, evl @ EventEnvelope(_,_,_, evt: ItemUpdated)) if illegalIdRegex.findFirstIn(evt.id).nonEmpty =>
       log.warning("illegal id found: {}", evl)
       acc
     case (acc, evl @ EventEnvelope(_, _, _, evt: Event)) =>
